@@ -49,9 +49,6 @@ import xml.dom.minidom
 #     width:     The estimated width in pixels
 #                i.e. CalculateLength(comment)*size
 #
-# After implementing ReadComments****, make sure to update ProbeCommentFormat
-# and CommentFormatMap.
-#
 
 
 def ReadCommentsBilibili(f, fontsize):
@@ -85,11 +82,6 @@ def ReadCommentsBilibili(f, fontsize):
         except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
             logging.warning("Invalid comment: %s" % comment.toxml())
             continue
-
-
-CommentFormatMap = {
-    "Bilibili": ReadCommentsBilibili,
-}
 
 
 def WriteCommentBilibiliPositioned(f, c, width, height, styleid):
@@ -187,145 +179,6 @@ def WriteCommentBilibiliPositioned(f, c, width, height, styleid):
             logging.warning("Invalid comment: %r" % c[3])
         except IndexError:
             logging.warning("Invalid comment: %r" % c)
-
-
-def WriteCommentAcfunPositioned(f, c, width, height, styleid):
-    AcfunPlayerSize = (560, 400)
-    ZoomFactor = GetZoomFactor(AcfunPlayerSize, (width, height))
-
-    def GetPosition(InputPos, isHeight):
-        isHeight = int(isHeight)  # True -> 1
-        return AcfunPlayerSize[isHeight] * ZoomFactor[0] * InputPos * 0.001 + ZoomFactor[isHeight + 1]
-
-    def GetTransformStyles(
-        x=None, y=None, scale_x=None, scale_y=None, rotate_z=None, rotate_y=None, color=None, alpha=None
-    ):
-        styles = []
-        out_x, out_y = x, y
-        if rotate_z is not None and rotate_y is not None:
-            assert x is not None
-            assert y is not None
-            rotarg = ConvertFlashRotation(rotate_y, rotate_z, x, y, width, height)
-            out_x, out_y = rotarg[0:2]
-            if scale_x is None:
-                scale_x = 1
-            if scale_y is None:
-                scale_y = 1
-            styles.append(
-                "\\frx%.0f\\fry%.0f\\frz%.0f\\fscx%.0f\\fscy%.0f"
-                % (rotarg[2:5] + (rotarg[5] * scale_x, rotarg[6] * scale_y))
-            )
-        else:
-            if scale_x is not None:
-                styles.append("\\fscx%.0f" % (scale_x * 100))
-            if scale_y is not None:
-                styles.append("\\fscy%.0f" % (scale_y * 100))
-        if color is not None:
-            styles.append("\\c&H%s&" % ConvertColor(color))
-            if color == 0x000000:
-                styles.append("\\3c&HFFFFFF&")
-        if alpha is not None:
-            alpha = 255 - round(alpha * 255)
-            styles.append("\\alpha&H%02X" % alpha)
-        return out_x, out_y, styles
-
-    def FlushCommentLine(f, text, styles, start_time, end_time, styleid):
-        if end_time > start_time:
-            f.write(
-                "Dialogue: -1,%(start)s,%(end)s,%(styleid)s,,0,0,0,,{%(styles)s}%(text)s\n"
-                % {
-                    "start": ConvertTimestamp(start_time),
-                    "end": ConvertTimestamp(end_time),
-                    "styles": "".join(styles),
-                    "text": text,
-                    "styleid": styleid,
-                }
-            )
-
-    try:
-        comment_args = c[3]
-        text = ASSEscape(str(comment_args["n"]).replace("\r", "\n"))
-        common_styles = ["\\org(%d, %d)" % (width / 2, height / 2)]
-        anchor = {0: 7, 1: 8, 2: 9, 3: 4, 4: 5, 5: 6, 6: 1, 7: 2, 8: 3}.get(comment_args.get("c", 0), 7)
-        if anchor != 7:
-            common_styles.append("\\an%s" % anchor)
-        font = comment_args.get("w")
-        if font:
-            font = dict(font)
-            fontface = font.get("f")
-            if fontface:
-                common_styles.append("\\fn%s" % ASSEscape(str(fontface)))
-            fontbold = bool(font.get("b"))
-            if fontbold:
-                common_styles.append("\\b1")
-        common_styles.append("\\fs%.0f" % (c[6] * ZoomFactor[0]))
-        isborder = bool(comment_args.get("b", True))
-        if not isborder:
-            common_styles.append("\\bord0")
-        to_pos = dict(comment_args.get("p", {"x": 0, "y": 0}))
-        to_x = round(GetPosition(int(to_pos.get("x", 0)), False))
-        to_y = round(GetPosition(int(to_pos.get("y", 0)), True))
-        to_scale_x = float(comment_args.get("e", 1.0))
-        to_scale_y = float(comment_args.get("f", 1.0))
-        to_rotate_z = float(comment_args.get("r", 0.0))
-        to_rotate_y = float(comment_args.get("k", 0.0))
-        to_color = c[5]
-        to_alpha = float(comment_args.get("a", 1.0))
-        from_time = float(comment_args.get("t", 0.0))
-        action_time = float(comment_args.get("l", 3.0))
-        actions = list(comment_args.get("z", []))
-        to_out_x, to_out_y, transform_styles = GetTransformStyles(
-            to_x, to_y, to_scale_x, to_scale_y, to_rotate_z, to_rotate_y, to_color, to_alpha
-        )
-        FlushCommentLine(
-            f,
-            text,
-            common_styles + ["\\pos(%.0f, %.0f)" % (to_out_x, to_out_y)] + transform_styles,
-            c[0] + from_time,
-            c[0] + from_time + action_time,
-            styleid,
-        )
-        action_styles = transform_styles
-        for action in actions:
-            action = dict(action)
-            from_x, from_y = to_x, to_y
-            from_out_x, from_out_y = to_out_x, to_out_y
-            from_scale_x, from_scale_y = to_scale_x, to_scale_y
-            from_rotate_z, from_rotate_y = to_rotate_z, to_rotate_y
-            from_color, from_alpha = to_color, to_alpha
-            transform_styles, action_styles = action_styles, []
-            from_time += action_time
-            action_time = float(action.get("l", 0.0))
-            if "x" in action:
-                to_x = round(GetPosition(int(action["x"]), False))
-            if "y" in action:
-                to_y = round(GetPosition(int(action["y"]), True))
-            if "f" in action:
-                to_scale_x = float(action["f"])
-            if "g" in action:
-                to_scale_y = float(action["g"])
-            if "c" in action:
-                to_color = int(action["c"])
-            if "t" in action:
-                to_alpha = float(action["t"])
-            if "d" in action:
-                to_rotate_z = float(action["d"])
-            if "e" in action:
-                to_rotate_y = float(action["e"])
-            to_out_x, to_out_y, action_styles = GetTransformStyles(
-                to_x, to_y, from_scale_x, from_scale_y, to_rotate_z, to_rotate_y, from_color, from_alpha
-            )
-            if (from_out_x, from_out_y) == (to_out_x, to_out_y):
-                pos_style = "\\pos(%.0f, %.0f)" % (to_out_x, to_out_y)
-            else:
-                pos_style = "\\move(%.0f, %.0f, %.0f, %.0f)" % (from_out_x, from_out_y, to_out_x, to_out_y)
-            styles = common_styles + transform_styles
-            styles.append(pos_style)
-            if action_styles:
-                styles.append("\\t(%s)" % ("".join(action_styles)))
-            FlushCommentLine(f, text, styles, c[0] + from_time, c[0] + from_time + action_time, styleid)
-    except (IndexError, ValueError) as e:
-        logging.warning("Invalid comment: %r" % c[3])
 
 
 # Result: (f, dx, dy)
@@ -452,8 +305,6 @@ def ProcessComments(
                     )
         elif i[4] == "bilipos":
             WriteCommentBilibiliPositioned(f, i, width, height, styleid)
-        elif i[4] == "acfunpos":
-            WriteCommentAcfunPositioned(f, i, width, height, styleid)
         else:
             logging.warning("Invalid comment: %r" % i[3])
     if progress_callback:
