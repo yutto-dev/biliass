@@ -12,15 +12,12 @@
 # Please update to the latest version before complaining.
 
 import argparse
-import io
 import json
 import logging
 import math
-import os
 import random
 import re
 import sys
-import time
 import xml.dom.minidom
 
 #
@@ -51,8 +48,17 @@ import xml.dom.minidom
 #
 
 
-def ReadCommentsBilibili(f, fontsize):
-    dom = xml.dom.minidom.parse(f)
+def export(func):
+    global __all__
+    try:
+        __all__.append(func.__name__)
+    except NameError:
+        __all__ = [func.__name__]
+    return func
+
+
+def ReadCommentsBilibili(text, fontsize):
+    dom = xml.dom.minidom.parseString(text)
     comment_element = dom.getElementsByTagName("d")
     for i, comment in enumerate(comment_element):
         try:
@@ -333,7 +339,6 @@ def ConvertFlashRotation(rotY, rotZ, X, Y, width, height):
 
 def ProcessComments(
     comments,
-    f,
     width,
     height,
     bottomReserved,
@@ -386,7 +391,7 @@ def ProcessComments(
             logging.warning("Invalid comment: %r" % i[3])
     if progress_callback:
         progress_callback(len(comments), len(comments))
-    ass.to_file(f)
+    return ass.to_string()
 
 
 def TestFreeRows(rows, c, row, width, height, bottomReserved, duration_marquee, duration_still):
@@ -494,19 +499,8 @@ def ConvertType2(row, height, bottomReserved):
     return height - bottomReserved - row
 
 
-def ConvertToFile(filename_or_file, *args, **kwargs):
-    if isinstance(filename_or_file, bytes):
-        filename_or_file = str(bytes(filename_or_file).decode("utf-8", "replace"))
-    if isinstance(filename_or_file, str):
-        return open(filename_or_file, *args, **kwargs)
-    else:
-        return filename_or_file
-
-
-def FilterBadChars(f):
-    s = f.read()
-    s = re.sub("[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]", "\ufffd", s)
-    return io.StringIO(s)
+def FilterBadChars(string):
+    return re.sub("[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]", "\ufffd", string)
 
 
 class safe_list(list):
@@ -517,19 +511,9 @@ class safe_list(list):
             return default
 
 
-def export(func):
-    global __all__
-    try:
-        __all__.append(func.__name__)
-    except NameError:
-        __all__ = [func.__name__]
-    return func
-
-
 @export
 def Danmaku2ASS(
-    input_files,
-    output_file,
+    input_string,
     stage_width,
     stage_height,
     reserve_blank=0,
@@ -539,15 +523,10 @@ def Danmaku2ASS(
     duration_marquee=5.0,
     duration_still=5.0,
     comment_filter=None,
-    comment_filters_file=None,
     is_reduce_comments=False,
     progress_callback=None,
 ):
     comment_filters = [comment_filter]
-    if comment_filters_file:
-        with open(comment_filters_file, "r") as f:
-            d = f.readlines()
-            comment_filters.extend([i.strip() for i in d])
     filters_regex = []
     for comment_filter in comment_filters:
         try:
@@ -555,53 +534,24 @@ def Danmaku2ASS(
                 filters_regex.append(re.compile(comment_filter))
         except:
             raise ValueError("Invalid regular expression: %s" % comment_filter)
-    fo = None
-    comments = ReadComments(input_files, font_size)
-    try:
-        if output_file:
-            fo = ConvertToFile(output_file, "w", encoding="utf-8-sig", errors="replace", newline="\r\n")
-        else:
-            fo = sys.stdout
-        ProcessComments(
-            comments,
-            fo,
-            stage_width,
-            stage_height,
-            reserve_blank,
-            font_face,
-            font_size,
-            text_opacity,
-            duration_marquee,
-            duration_still,
-            filters_regex,
-            is_reduce_comments,
-            progress_callback,
-        )
-    finally:
-        if output_file and fo != output_file:
-            fo.close()
 
-
-@export
-def ReadComments(input_files, font_size=25.0, progress_callback=None):
-    if isinstance(input_files, bytes):
-        input_files = str(bytes(input_files).decode("utf-8", "replace"))
-    if isinstance(input_files, str):
-        input_files = [input_files]
-    else:
-        input_files = list(input_files)
-    comments = []
-    for idx, i in enumerate(input_files):
-        if progress_callback:
-            progress_callback(idx, len(input_files))
-        with ConvertToFile(i, "r", encoding="utf-8", errors="replace") as f:
-            s = f.read()
-            str_io = io.StringIO(s)
-            comments.extend(ReadCommentsBilibili(FilterBadChars(str_io), font_size))
-    if progress_callback:
-        progress_callback(len(input_files), len(input_files))
+    comments = ReadCommentsBilibili(FilterBadChars(input_string), font_size)
+    comments = list(comments)
     comments.sort()
-    return comments
+    return ProcessComments(
+        comments,
+        stage_width,
+        stage_height,
+        reserve_blank,
+        font_face,
+        font_size,
+        text_opacity,
+        duration_marquee,
+        duration_still,
+        filters_regex,
+        is_reduce_comments,
+        progress_callback,
+    )
 
 
 def main():
@@ -651,7 +601,7 @@ def main():
         "-p", "--protect", metavar="HEIGHT", help="Reserve blank on the bottom of the stage", type=int, default=0
     )
     parser.add_argument("-r", "--reduce", action="store_true", help="Reduce the amount of comments if stage is full")
-    parser.add_argument("file", metavar="FILE", nargs="+", help="Comment file to be processed")
+    parser.add_argument("file", metavar="FILE", help="Comment file to be processed")
     args = parser.parse_args()
     try:
         width, height = str(args.size).split("x", 1)
@@ -659,9 +609,16 @@ def main():
         height = int(height)
     except ValueError:
         raise ValueError("Invalid stage size: %r" % args.size)
-    Danmaku2ASS(
-        args.file,
-        args.output,
+
+    with open(args.file, "r") as f:
+        input = f.read()
+
+    if args.output:
+        fo = open(args.output, "w", encoding="utf-8-sig", errors="replace", newline="\r\n")
+    else:
+        fo = sys.stdout
+    output = Danmaku2ASS(
+        input,
         width,
         height,
         args.protect,
@@ -671,9 +628,10 @@ def main():
         args.duration_marquee,
         args.duration_still,
         args.filter,
-        args.filter_file,
         args.reduce,
     )
+    fo.write(output)
+    fo.close()
 
 
 if __name__ == "__main__":
