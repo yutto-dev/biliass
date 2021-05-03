@@ -84,101 +84,177 @@ def ReadCommentsBilibili(f, fontsize):
             continue
 
 
-def WriteCommentBilibiliPositioned(f, c, width, height, styleid):
-    # BiliPlayerSize = (512, 384)  # Bilibili player version 2010
-    # BiliPlayerSize = (540, 384)  # Bilibili player version 2012
-    BiliPlayerSize = (672, 438)  # Bilibili player version 2014
-    ZoomFactor = GetZoomFactor(BiliPlayerSize, (width, height))
+class AssText:
+    def __init__(self):
+        self._text = ""
 
-    def GetPosition(InputPos, isHeight):
-        isHeight = int(isHeight)  # True -> 1
-        if isinstance(InputPos, int):
-            return ZoomFactor[0] * InputPos + ZoomFactor[isHeight + 1]
-        elif isinstance(InputPos, float):
-            if InputPos > 1:
+    def WriteCommentBilibiliPositioned(self, c, width, height, styleid):
+        # BiliPlayerSize = (512, 384)  # Bilibili player version 2010
+        # BiliPlayerSize = (540, 384)  # Bilibili player version 2012
+        # BiliPlayerSize = (672, 438)  # Bilibili player version 2014
+        BiliPlayerSize = (891, 589)  # Bilibili player version 2021 (flex)
+        ZoomFactor = GetZoomFactor(BiliPlayerSize, (width, height))
+
+        def GetPosition(InputPos, isHeight):
+            isHeight = int(isHeight)  # True -> 1
+            if isinstance(InputPos, int):
                 return ZoomFactor[0] * InputPos + ZoomFactor[isHeight + 1]
+            elif isinstance(InputPos, float):
+                if InputPos > 1:
+                    return ZoomFactor[0] * InputPos + ZoomFactor[isHeight + 1]
+                else:
+                    return BiliPlayerSize[isHeight] * ZoomFactor[0] * InputPos + ZoomFactor[isHeight + 1]
             else:
-                return BiliPlayerSize[isHeight] * ZoomFactor[0] * InputPos + ZoomFactor[isHeight + 1]
-        else:
-            try:
-                InputPos = int(InputPos)
-            except ValueError:
-                InputPos = float(InputPos)
-            return GetPosition(InputPos, isHeight)
+                try:
+                    InputPos = int(InputPos)
+                except ValueError:
+                    InputPos = float(InputPos)
+                return GetPosition(InputPos, isHeight)
 
-    try:
-        comment_args = safe_list(json.loads(c[3]))
-        text = ASSEscape(str(comment_args[4]).replace("/n", "\n"))
-        from_x = comment_args.get(0, 0)
-        from_y = comment_args.get(1, 0)
-        to_x = comment_args.get(7, from_x)
-        to_y = comment_args.get(8, from_y)
-        from_x = GetPosition(from_x, False)
-        from_y = GetPosition(from_y, True)
-        to_x = GetPosition(to_x, False)
-        to_y = GetPosition(to_y, True)
-        alpha = safe_list(str(comment_args.get(2, "1")).split("-"))
-        from_alpha = float(alpha.get(0, 1))
-        to_alpha = float(alpha.get(1, from_alpha))
-        from_alpha = 255 - round(from_alpha * 255)
-        to_alpha = 255 - round(to_alpha * 255)
-        rotate_z = int(comment_args.get(5, 0))
-        rotate_y = int(comment_args.get(6, 0))
-        lifetime = float(comment_args.get(3, 4500))
-        duration = int(comment_args.get(9, lifetime * 1000))
-        delay = int(comment_args.get(10, 0))
-        fontface = comment_args.get(12)
-        isborder = comment_args.get(11, "true")
-        from_rotarg = ConvertFlashRotation(rotate_y, rotate_z, from_x, from_y, width, height)
-        to_rotarg = ConvertFlashRotation(rotate_y, rotate_z, to_x, to_y, width, height)
-        styles = ["\\org(%d, %d)" % (width / 2, height / 2)]
-        if from_rotarg[0:2] == to_rotarg[0:2]:
-            styles.append("\\pos(%.0f, %.0f)" % (from_rotarg[0:2]))
-        else:
-            styles.append(
-                "\\move(%.0f, %.0f, %.0f, %.0f, %.0f, %.0f)"
-                % (from_rotarg[0:2] + to_rotarg[0:2] + (delay, delay + duration))
-            )
-        styles.append("\\frx%.0f\\fry%.0f\\frz%.0f\\fscx%.0f\\fscy%.0f" % (from_rotarg[2:7]))
-        if (from_x, from_y) != (to_x, to_y):
-            styles.append("\\t(%d, %d, " % (delay, delay + duration))
-            styles.append("\\frx%.0f\\fry%.0f\\frz%.0f\\fscx%.0f\\fscy%.0f" % (to_rotarg[2:7]))
-            styles.append(")")
-        if fontface:
-            styles.append("\\fn%s" % ASSEscape(fontface))
-        styles.append("\\fs%.0f" % (c[6] * ZoomFactor[0]))
-        if c[5] != 0xFFFFFF:
-            styles.append("\\c&H%s&" % ConvertColor(c[5]))
-            if c[5] == 0x000000:
-                styles.append("\\3c&HFFFFFF&")
-        if from_alpha == to_alpha:
-            styles.append("\\alpha&H%02X" % from_alpha)
-        elif (from_alpha, to_alpha) == (255, 0):
-            styles.append("\\fad(%.0f,0)" % (lifetime * 1000))
-        elif (from_alpha, to_alpha) == (0, 255):
-            styles.append("\\fad(0, %.0f)" % (lifetime * 1000))
-        else:
-            styles.append(
-                "\\fade(%(from_alpha)d, %(to_alpha)d, %(to_alpha)d, 0, %(end_time).0f, %(end_time).0f, %(end_time).0f)"
-                % {"from_alpha": from_alpha, "to_alpha": to_alpha, "end_time": lifetime * 1000}
-            )
-        if isborder == "false":
-            styles.append("\\bord0")
-        f.write(
-            "Dialogue: -1,%(start)s,%(end)s,%(styleid)s,,0,0,0,,{%(styles)s}%(text)s\n"
-            % {
+        try:
+            comment_args = safe_list(json.loads(c[3]))
+            text = ASSEscape(str(comment_args[4]).replace("/n", "\n"))
+            from_x = comment_args.get(0, 0)
+            from_y = comment_args.get(1, 0)
+            to_x = comment_args.get(7, from_x)
+            to_y = comment_args.get(8, from_y)
+            from_x = GetPosition(from_x, False)
+            from_y = GetPosition(from_y, True)
+            to_x = GetPosition(to_x, False)
+            to_y = GetPosition(to_y, True)
+            alpha = safe_list(str(comment_args.get(2, "1")).split("-"))
+            from_alpha = float(alpha.get(0, 1))
+            to_alpha = float(alpha.get(1, from_alpha))
+            from_alpha = 255 - round(from_alpha * 255)
+            to_alpha = 255 - round(to_alpha * 255)
+            rotate_z = int(comment_args.get(5, 0))
+            rotate_y = int(comment_args.get(6, 0))
+            lifetime = float(comment_args.get(3, 4500))
+            duration = int(comment_args.get(9, lifetime * 1000))
+            delay = int(comment_args.get(10, 0))
+            fontface = comment_args.get(12)
+            isborder = comment_args.get(11, "true")
+            from_rotarg = ConvertFlashRotation(rotate_y, rotate_z, from_x, from_y, width, height)
+            to_rotarg = ConvertFlashRotation(rotate_y, rotate_z, to_x, to_y, width, height)
+            styles = ["\\org(%d, %d)" % (width / 2, height / 2)]
+            if from_rotarg[0:2] == to_rotarg[0:2]:
+                styles.append("\\pos(%.0f, %.0f)" % (from_rotarg[0:2]))
+            else:
+                styles.append(
+                    "\\move(%.0f, %.0f, %.0f, %.0f, %.0f, %.0f)"
+                    % (from_rotarg[0:2] + to_rotarg[0:2] + (delay, delay + duration))
+                )
+            styles.append("\\frx%.0f\\fry%.0f\\frz%.0f\\fscx%.0f\\fscy%.0f" % (from_rotarg[2:7]))
+            if (from_x, from_y) != (to_x, to_y):
+                styles.append("\\t(%d, %d, " % (delay, delay + duration))
+                styles.append("\\frx%.0f\\fry%.0f\\frz%.0f\\fscx%.0f\\fscy%.0f" % (to_rotarg[2:7]))
+                styles.append(")")
+            if fontface:
+                styles.append("\\fn%s" % ASSEscape(fontface))
+            styles.append("\\fs%.0f" % (c[6] * ZoomFactor[0]))
+            if c[5] != 0xFFFFFF:
+                styles.append("\\c&H%s&" % ConvertColor(c[5]))
+                if c[5] == 0x000000:
+                    styles.append("\\3c&HFFFFFF&")
+            if from_alpha == to_alpha:
+                styles.append("\\alpha&H%02X" % from_alpha)
+            elif (from_alpha, to_alpha) == (255, 0):
+                styles.append("\\fad(%.0f,0)" % (lifetime * 1000))
+            elif (from_alpha, to_alpha) == (0, 255):
+                styles.append("\\fad(0, %.0f)" % (lifetime * 1000))
+            else:
+                styles.append(
+                    "\\fade(%(from_alpha)d, %(to_alpha)d, %(to_alpha)d, 0, %(end_time).0f, %(end_time).0f, %(end_time).0f)"
+                    % {"from_alpha": from_alpha, "to_alpha": to_alpha, "end_time": lifetime * 1000}
+                )
+            if isborder == "false":
+                styles.append("\\bord0")
+            self._text += "Dialogue: -1,%(start)s,%(end)s,%(styleid)s,,0,0,0,,{%(styles)s}%(text)s\n" % {
                 "start": ConvertTimestamp(c[0]),
                 "end": ConvertTimestamp(c[0] + lifetime),
                 "styles": "".join(styles),
                 "text": text,
                 "styleid": styleid,
             }
-        )
-    except (IndexError, ValueError) as e:
-        try:
-            logging.warning("Invalid comment: %r" % c[3])
-        except IndexError:
-            logging.warning("Invalid comment: %r" % c)
+        except (IndexError, ValueError) as e:
+            try:
+                logging.warning("Invalid comment: %r" % c[3])
+            except IndexError:
+                logging.warning("Invalid comment: %r" % c)
+
+    def WriteASSHead(self, width, height, fontface, fontsize, alpha, styleid):
+        self._text += """[Script Info]
+; Script generated by Danmaku2ASS
+; https://github.com/m13253/danmaku2ass
+Script Updated By: Danmaku2ASS (https://github.com/m13253/danmaku2ass)
+ScriptType: v4.00+
+PlayResX: %(width)d
+PlayResY: %(height)d
+Aspect Ratio: %(width)d:%(height)d
+Collisions: Normal
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+YCbCr Matrix: TV.601
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: %(styleid)s, %(fontface)s, %(fontsize).0f, &H%(alpha)02XFFFFFF, &H%(alpha)02XFFFFFF, &H%(alpha)02X000000, &H%(alpha)02X000000, 0, 0, 0, 0, 100, 100, 0.00, 0.00, 1, %(outline).0f, 0, 7, 0, 0, 0, 0
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+""" % {
+            "width": width,
+            "height": height,
+            "fontface": fontface,
+            "fontsize": fontsize,
+            "alpha": 255 - round(alpha * 255),
+            "outline": max(fontsize / 25.0, 1),
+            "styleid": styleid,
+        }
+
+    def WriteComment(self, c, row, width, height, bottomReserved, fontsize, duration_marquee, duration_still, styleid):
+        text = ASSEscape(c[3])
+        styles = []
+        if c[4] == 1:
+            styles.append("\\an8\\pos(%(halfwidth)d, %(row)d)" % {"halfwidth": width / 2, "row": row})
+            duration = duration_still
+        elif c[4] == 2:
+            styles.append(
+                "\\an2\\pos(%(halfwidth)d, %(row)d)"
+                % {"halfwidth": width / 2, "row": ConvertType2(row, height, bottomReserved)}
+            )
+            duration = duration_still
+        elif c[4] == 3:
+            styles.append(
+                "\\move(%(neglen)d, %(row)d, %(width)d, %(row)d)"
+                % {"width": width, "row": row, "neglen": -math.ceil(c[8])}
+            )
+            duration = duration_marquee
+        else:
+            styles.append(
+                "\\move(%(width)d, %(row)d, %(neglen)d, %(row)d)"
+                % {"width": width, "row": row, "neglen": -math.ceil(c[8])}
+            )
+            duration = duration_marquee
+        if not (-1 < c[6] - fontsize < 1):
+            styles.append("\\fs%.0f" % c[6])
+        if c[5] != 0xFFFFFF:
+            styles.append("\\c&H%s&" % ConvertColor(c[5]))
+            if c[5] == 0x000000:
+                styles.append("\\3c&HFFFFFF&")
+        self._text += "Dialogue: 2,%(start)s,%(end)s,%(styleid)s,,0000,0000,0000,,{%(styles)s}%(text)s\n" % {
+            "start": ConvertTimestamp(c[0]),
+            "end": ConvertTimestamp(c[0] + duration),
+            "styles": "".join(styles),
+            "text": text,
+            "styleid": styleid,
+        }
+
+    def to_file(self, f):
+        f.write(self._text)
+
+    def to_string(self):
+        return self._text
 
 
 # Result: (f, dx, dy)
@@ -271,7 +347,8 @@ def ProcessComments(
     progress_callback,
 ):
     styleid = "Danmaku2ASS_%04x" % random.randint(0, 0xFFFF)
-    WriteASSHead(f, width, height, fontface, fontsize, alpha, styleid)
+    ass = AssText()
+    ass.WriteASSHead(width, height, fontface, fontsize, alpha, styleid)
     rows = [[None] * (height - bottomReserved + 1) for i in range(4)]
     for idx, i in enumerate(comments):
         if progress_callback and idx % 1000 == 0:
@@ -290,8 +367,8 @@ def ProcessComments(
                 freerows = TestFreeRows(rows, i, row, width, height, bottomReserved, duration_marquee, duration_still)
                 if freerows >= i[7]:
                     MarkCommentRow(rows, i, row)
-                    WriteComment(
-                        f, i, row, width, height, bottomReserved, fontsize, duration_marquee, duration_still, styleid
+                    ass.WriteComment(
+                        i, row, width, height, bottomReserved, fontsize, duration_marquee, duration_still, styleid
                     )
                     break
                 else:
@@ -300,15 +377,16 @@ def ProcessComments(
                 if not reduced:
                     row = FindAlternativeRow(rows, i, height, bottomReserved)
                     MarkCommentRow(rows, i, row)
-                    WriteComment(
-                        f, i, row, width, height, bottomReserved, fontsize, duration_marquee, duration_still, styleid
+                    ass.WriteComment(
+                        i, row, width, height, bottomReserved, fontsize, duration_marquee, duration_still, styleid
                     )
         elif i[4] == "bilipos":
-            WriteCommentBilibiliPositioned(f, i, width, height, styleid)
+            ass.WriteCommentBilibiliPositioned(i, width, height, styleid)
         else:
             logging.warning("Invalid comment: %r" % i[3])
     if progress_callback:
         progress_callback(len(comments), len(comments))
+    ass.to_file(f)
 
 
 def TestFreeRows(rows, c, row, width, height, bottomReserved, duration_marquee, duration_still):
@@ -360,80 +438,6 @@ def MarkCommentRow(rows, c, row):
             rows[c[4]][i] = c
     except IndexError:
         pass
-
-
-def WriteASSHead(f, width, height, fontface, fontsize, alpha, styleid):
-    f.write(
-        """[Script Info]
-; Script generated by Danmaku2ASS
-; https://github.com/m13253/danmaku2ass
-Script Updated By: Danmaku2ASS (https://github.com/m13253/danmaku2ass)
-ScriptType: v4.00+
-PlayResX: %(width)d
-PlayResY: %(height)d
-Aspect Ratio: %(width)d:%(height)d
-Collisions: Normal
-WrapStyle: 2
-ScaledBorderAndShadow: yes
-YCbCr Matrix: TV.601
-
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: %(styleid)s, %(fontface)s, %(fontsize).0f, &H%(alpha)02XFFFFFF, &H%(alpha)02XFFFFFF, &H%(alpha)02X000000, &H%(alpha)02X000000, 0, 0, 0, 0, 100, 100, 0.00, 0.00, 1, %(outline).0f, 0, 7, 0, 0, 0, 0
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-"""
-        % {
-            "width": width,
-            "height": height,
-            "fontface": fontface,
-            "fontsize": fontsize,
-            "alpha": 255 - round(alpha * 255),
-            "outline": max(fontsize / 25.0, 1),
-            "styleid": styleid,
-        }
-    )
-
-
-def WriteComment(f, c, row, width, height, bottomReserved, fontsize, duration_marquee, duration_still, styleid):
-    text = ASSEscape(c[3])
-    styles = []
-    if c[4] == 1:
-        styles.append("\\an8\\pos(%(halfwidth)d, %(row)d)" % {"halfwidth": width / 2, "row": row})
-        duration = duration_still
-    elif c[4] == 2:
-        styles.append(
-            "\\an2\\pos(%(halfwidth)d, %(row)d)"
-            % {"halfwidth": width / 2, "row": ConvertType2(row, height, bottomReserved)}
-        )
-        duration = duration_still
-    elif c[4] == 3:
-        styles.append(
-            "\\move(%(neglen)d, %(row)d, %(width)d, %(row)d)" % {"width": width, "row": row, "neglen": -math.ceil(c[8])}
-        )
-        duration = duration_marquee
-    else:
-        styles.append(
-            "\\move(%(width)d, %(row)d, %(neglen)d, %(row)d)" % {"width": width, "row": row, "neglen": -math.ceil(c[8])}
-        )
-        duration = duration_marquee
-    if not (-1 < c[6] - fontsize < 1):
-        styles.append("\\fs%.0f" % c[6])
-    if c[5] != 0xFFFFFF:
-        styles.append("\\c&H%s&" % ConvertColor(c[5]))
-        if c[5] == 0x000000:
-            styles.append("\\3c&HFFFFFF&")
-    f.write(
-        "Dialogue: 2,%(start)s,%(end)s,%(styleid)s,,0000,0000,0000,,{%(styles)s}%(text)s\n"
-        % {
-            "start": ConvertTimestamp(c[0]),
-            "end": ConvertTimestamp(c[0] + duration),
-            "styles": "".join(styles),
-            "text": text,
-            "styleid": styleid,
-        }
-    )
 
 
 def ASSEscape(s):
