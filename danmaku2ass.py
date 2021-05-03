@@ -12,7 +12,6 @@
 # Please update to the latest version before complaining.
 
 import argparse
-import calendar
 import io
 import json
 import logging
@@ -23,65 +22,6 @@ import re
 import sys
 import time
 import xml.dom.minidom
-
-
-def SeekZero(function):
-    def decorated_function(file_):
-        file_.seek(0)
-        try:
-            return function(file_)
-        finally:
-            file_.seek(0)
-
-    return decorated_function
-
-
-def EOFAsNone(function):
-    def decorated_function(*args, **kwargs):
-        try:
-            return function(*args, **kwargs)
-        except EOFError:
-            return None
-
-    return decorated_function
-
-
-@SeekZero
-@EOFAsNone
-def ProbeCommentFormat(f):
-    tmp = f.read(1)
-    if tmp == "[":
-        return "Acfun"
-        # It is unwise to wrap a JSON object in an array!
-        # See this: http://haacked.com/archive/2008/11/20/anatomy-of-a-subtle-json-vulnerability.aspx/
-        # Do never follow what Acfun developers did!
-    elif tmp == "{":
-        tmp = f.read(14)
-        if tmp == '"status_code":':
-            return "Tudou"
-        elif tmp.strip().startswith('"result'):
-            return "Tudou2"
-    elif tmp == "<":
-        tmp = f.read(1)
-        if tmp == "?":
-            tmp = f.read(38)
-            if tmp == 'xml version="1.0" encoding="UTF-8"?><p':
-                return "Niconico"
-            elif tmp == 'xml version="1.0" encoding="UTF-8"?><i':
-                return "Bilibili"
-            elif tmp == 'xml version="1.0" encoding="utf-8"?><i':
-                return "Bilibili"  # tucao.cc, with the same file format as Bilibili
-            elif tmp == 'xml version="1.0" encoding="Utf-8"?>\n<':
-                return "Bilibili"  # Komica, with the same file format as Bilibili
-            elif tmp == 'xml version="1.0" encoding="UTF-8"?>\n<':
-                tmp = f.read(20)
-                if tmp == "!-- BoonSutazioData=":
-                    return "Niconico"  # Niconico videos downloaded with NicoFox
-                else:
-                    return "MioMio"
-        elif tmp == "p":
-            return "Niconico"  # Himawari Douga, with the same file format as Niconico Douga
-
 
 #
 # ReadComments**** protocol
@@ -112,102 +52,6 @@ def ProbeCommentFormat(f):
 # After implementing ReadComments****, make sure to update ProbeCommentFormat
 # and CommentFormatMap.
 #
-
-
-def ReadCommentsNiconico(f, fontsize):
-    NiconicoColorMap = {
-        "red": 0xFF0000,
-        "pink": 0xFF8080,
-        "orange": 0xFFCC00,
-        "yellow": 0xFFFF00,
-        "green": 0x00FF00,
-        "cyan": 0x00FFFF,
-        "blue": 0x0000FF,
-        "purple": 0xC000FF,
-        "black": 0x000000,
-        "niconicowhite": 0xCCCC99,
-        "white2": 0xCCCC99,
-        "truered": 0xCC0033,
-        "red2": 0xCC0033,
-        "passionorange": 0xFF6600,
-        "orange2": 0xFF6600,
-        "madyellow": 0x999900,
-        "yellow2": 0x999900,
-        "elementalgreen": 0x00CC66,
-        "green2": 0x00CC66,
-        "marineblue": 0x33FFCC,
-        "blue2": 0x33FFCC,
-        "nobleviolet": 0x6633CC,
-        "purple2": 0x6633CC,
-    }
-    dom = xml.dom.minidom.parse(f)
-    comment_element = dom.getElementsByTagName("chat")
-    for comment in comment_element:
-        try:
-            c = str(comment.childNodes[0].wholeText)
-            if c.startswith("/"):
-                continue  # ignore advanced comments
-            pos = 0
-            color = 0xFFFFFF
-            size = fontsize
-            for mailstyle in str(comment.getAttribute("mail")).split():
-                if mailstyle == "ue":
-                    pos = 1
-                elif mailstyle == "shita":
-                    pos = 2
-                elif mailstyle == "big":
-                    size = fontsize * 1.44
-                elif mailstyle == "small":
-                    size = fontsize * 0.64
-                elif mailstyle in NiconicoColorMap:
-                    color = NiconicoColorMap[mailstyle]
-            yield (
-                max(int(comment.getAttribute("vpos")), 0) * 0.01,
-                int(comment.getAttribute("date")),
-                int(comment.getAttribute("no")),
-                c,
-                pos,
-                color,
-                size,
-                (c.count("\n") + 1) * size,
-                CalculateLength(c) * size,
-            )
-        except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %s" % comment.toxml())
-            continue
-
-
-def ReadCommentsAcfun(f, fontsize):
-    # comment_element = json.load(f)
-    # after load acfun comment json file as python list, flatten the list
-    # comment_element = [c for sublist in comment_element for c in sublist]
-    comment_elements = json.load(f)
-    comment_element = comment_elements[2]
-    for i, comment in enumerate(comment_element):
-        try:
-            p = str(comment["c"]).split(",")
-            assert len(p) >= 6
-            assert p[2] in ("1", "2", "4", "5", "7")
-            size = int(p[3]) * fontsize / 25.0
-            if p[2] != "7":
-                c = str(comment["m"]).replace("\\r", "\n").replace("\r", "\n")
-                yield (
-                    float(p[0]),
-                    int(p[5]),
-                    i,
-                    c,
-                    {"1": 0, "2": 0, "4": 2, "5": 1}[p[2]],
-                    int(p[1]),
-                    size,
-                    (c.count("\n") + 1) * size,
-                    CalculateLength(c) * size,
-                )
-            else:
-                c = dict(json.loads(comment["m"]))
-                yield (float(p[0]), int(p[5]), i, c, "acfunpos", int(p[1]), size, 0, 0)
-        except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %r" % comment)
-            continue
 
 
 def ReadCommentsBilibili(f, fontsize):
@@ -243,107 +87,8 @@ def ReadCommentsBilibili(f, fontsize):
             continue
 
 
-def ReadCommentsTudou(f, fontsize):
-    comment_element = json.load(f)
-    for i, comment in enumerate(comment_element["comment_list"]):
-        try:
-            assert comment["pos"] in (3, 4, 6)
-            c = str(comment["data"])
-            assert comment["size"] in (0, 1, 2)
-            size = {0: 0.64, 1: 1, 2: 1.44}[comment["size"]] * fontsize
-            yield (
-                int(comment["replay_time"] * 0.001),
-                int(comment["commit_time"]),
-                i,
-                c,
-                {3: 0, 4: 2, 6: 1}[comment["pos"]],
-                int(comment["color"]),
-                size,
-                (c.count("\n") + 1) * size,
-                CalculateLength(c) * size,
-            )
-        except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %r") % comment
-            continue
-
-
-def ReadCommentsTudou2(f, fontsize):
-    comment_element = json.load(f)
-    for i, comment in enumerate(comment_element["result"]):
-        try:
-            c = str(comment["content"])
-            prop = json.loads(str(comment["propertis"]) or "{}")
-            size = int(prop.get("size", 1))
-            assert size in (0, 1, 2)
-            size = {0: 0.64, 1: 1, 2: 1.44}[size] * fontsize
-            pos = int(prop.get("pos", 3))
-            assert pos in (0, 3, 4, 6)
-            yield (
-                int(comment["playat"] * 0.001),
-                int(comment["createtime"] * 0.001),
-                i,
-                c,
-                {0: 0, 3: 0, 4: 2, 6: 1}[pos],
-                int(prop.get("color", 0xFFFFFF)),
-                size,
-                (c.count("\n") + 1) * size,
-                CalculateLength(c) * size,
-            )
-        except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %r" % comment)
-            continue
-
-
-def ReadCommentsMioMio(f, fontsize):
-    NiconicoColorMap = {
-        "red": 0xFF0000,
-        "pink": 0xFF8080,
-        "orange": 0xFFC000,
-        "yellow": 0xFFFF00,
-        "green": 0x00FF00,
-        "cyan": 0x00FFFF,
-        "blue": 0x0000FF,
-        "purple": 0xC000FF,
-        "black": 0x000000,
-    }
-    dom = xml.dom.minidom.parse(f)
-    comment_element = dom.getElementsByTagName("data")
-    for i, comment in enumerate(comment_element):
-        try:
-            message = comment.getElementsByTagName("message")[0]
-            c = str(message.childNodes[0].wholeText)
-            pos = 0
-            size = int(message.getAttribute("fontsize")) * fontsize / 25.0
-            yield (
-                float(comment.getElementsByTagName("playTime")[0].childNodes[0].wholeText),
-                int(
-                    calendar.timegm(
-                        time.strptime(
-                            comment.getElementsByTagName("times")[0].childNodes[0].wholeText, "%Y-%m-%d %H:%M:%S"
-                        )
-                    )
-                )
-                - 28800,
-                i,
-                c,
-                {"1": 0, "4": 2, "5": 1}[message.getAttribute("mode")],
-                int(message.getAttribute("color")),
-                size,
-                (c.count("\n") + 1) * size,
-                CalculateLength(c) * size,
-            )
-        except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %s" % comment.toxml())
-            continue
-
-
 CommentFormatMap = {
-    "Niconico": ReadCommentsNiconico,
-    "Acfun": ReadCommentsAcfun,
     "Bilibili": ReadCommentsBilibili,
-    "Tudou": ReadCommentsTudou,
-    "Tudou2": ReadCommentsTudou2,
-    "MioMio": ReadCommentsMioMio,
 }
 
 
@@ -929,7 +674,6 @@ def export(func):
 @export
 def Danmaku2ASS(
     input_files,
-    input_format,
     output_file,
     stage_width,
     stage_height,
@@ -957,7 +701,7 @@ def Danmaku2ASS(
         except:
             raise ValueError("Invalid regular expression: %s" % comment_filter)
     fo = None
-    comments = ReadComments(input_files, input_format, font_size)
+    comments = ReadComments(input_files, font_size)
     try:
         if output_file:
             fo = ConvertToFile(output_file, "w", encoding="utf-8-sig", errors="replace", newline="\r\n")
@@ -984,7 +728,7 @@ def Danmaku2ASS(
 
 
 @export
-def ReadComments(input_files, input_format, font_size=25.0, progress_callback=None):
+def ReadComments(input_files, font_size=25.0, progress_callback=None):
     if isinstance(input_files, bytes):
         input_files = str(bytes(input_files).decode("utf-8", "replace"))
     if isinstance(input_files, str):
@@ -998,24 +742,11 @@ def ReadComments(input_files, input_format, font_size=25.0, progress_callback=No
         with ConvertToFile(i, "r", encoding="utf-8", errors="replace") as f:
             s = f.read()
             str_io = io.StringIO(s)
-            if input_format == "autodetect":
-                CommentProcessor = GetCommentProcessor(str_io)
-                if not CommentProcessor:
-                    raise ValueError("Failed to detect comment file format: %s" % i)
-            else:
-                CommentProcessor = CommentFormatMap.get(input_format)
-                if not CommentProcessor:
-                    raise ValueError("Unknown comment file format: %s" % input_format)
-            comments.extend(CommentProcessor(FilterBadChars(str_io), font_size))
+            comments.extend(ReadCommentsBilibili(FilterBadChars(str_io), font_size))
     if progress_callback:
         progress_callback(len(input_files), len(input_files))
     comments.sort()
     return comments
-
-
-@export
-def GetCommentProcessor(input_file):
-    return CommentFormatMap.get(ProbeCommentFormat(input_file))
 
 
 def main():
@@ -1023,13 +754,6 @@ def main():
     if len(sys.argv) == 1:
         sys.argv.append("--help")
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-f",
-        "--format",
-        metavar="FORMAT",
-        help="Format of input file (autodetect|%s) [default: autodetect]" % "|".join(i for i in CommentFormatMap),
-        default="autodetect",
-    )
     parser.add_argument("-o", "--output", metavar="OUTPUT", help="Output file")
     parser.add_argument("-s", "--size", metavar="WIDTHxHEIGHT", required=True, help="Stage size in pixels")
     parser.add_argument(
@@ -1082,7 +806,6 @@ def main():
         raise ValueError("Invalid stage size: %r" % args.size)
     Danmaku2ASS(
         args.file,
-        args.format,
         args.output,
         width,
         height,
