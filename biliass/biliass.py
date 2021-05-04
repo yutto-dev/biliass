@@ -17,6 +17,7 @@ import math
 import random
 import re
 import xml.dom.minidom
+from typing import Optional, Callable
 
 #
 # ReadComments**** protocol
@@ -511,20 +512,20 @@ class safe_list(list):
 
 @export
 def Danmaku2ASS(
-    input_string,
-    stage_width,
-    stage_height,
-    reserve_blank=0,
-    font_face="sans-serif",
-    font_size=25.0,
-    text_opacity=1.0,
-    duration_marquee=5.0,
-    duration_still=5.0,
-    comment_filter=None,
-    is_reduce_comments=False,
-    progress_callback=None,
-):
-    comment_filters = [comment_filter]
+    input_string: str,
+    stage_width: int,
+    stage_height: int,
+    reserve_blank: float = 0,
+    font_face: str = "sans-serif",
+    font_size: float = 25.0,
+    text_opacity: float = 1.0,
+    duration_marquee: float = 5.0,
+    duration_still: float = 5.0,
+    comment_filter: Optional[str] = None,
+    is_reduce_comments: bool = False,
+    progress_callback: Optional[Callable[..., None]] = None,
+) -> str:
+    comment_filters: list[str] = [comment_filter] if comment_filter is not None else []
     filters_regex = []
     for comment_filter in comment_filters:
         try:

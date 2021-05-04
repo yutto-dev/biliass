@@ -3,7 +3,7 @@ import sys
 from shutil import rmtree
 
 from biliass.__version__ import __version__
-from setuptools import setup, find_packages, Command
+from setuptools import setup, Command
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -31,6 +31,10 @@ class UploadCommand(Command):
             rmtree(os.path.join(here, "dist"))
         except OSError:
             pass
+
+        self.status("Generating stub files...")
+        os.system("touch biliass/py.typed")
+        os.system("stubgen ./biliass/biliass.py -o .")
 
         self.status("Building Source and Wheel (universal) distribution…")
         os.system("{0} setup.py sdist bdist_wheel --universal".format(sys.executable))
@@ -69,9 +73,10 @@ setup(
     ],
     keywords="bilibili danmaku xml ass",
     author="m13253, Nyakku Shigure",
-    url="https://github.com/ShigureLab/danmaku2ass",
+    url="https://github.com/ShigureLab/biliass",
     license="GPLv3",
-    packages=find_packages(),
+    packages=["biliass"],
+    package_data={"biliass": ["py.typed", "*.pyi", "**/*.pyi"]},
     include_package_data=True,
     zip_safe=True,
     python_requires=">=3.6.0",

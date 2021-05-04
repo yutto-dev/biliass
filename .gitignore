@@ -121,3 +121,7 @@ dmypy.json
 *.ass
 *.xml
 * - bilibili/
+
+# stub files
+py.typed
+*.pyi
