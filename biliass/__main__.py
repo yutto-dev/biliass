@@ -52,6 +52,7 @@ def main():
         "-p", "--protect", metavar="HEIGHT", help="Reserve blank on the bottom of the stage", type=int, default=0
     )
     parser.add_argument("-r", "--reduce", action="store_true", help="Reduce the amount of comments if stage is full")
+    parser.add_argument("-f", "--format", choices=["xml", "protobuf"], default="xml", help="输入文件的格式（XML 或 protobuf）")
     parser.add_argument("file", metavar="FILE", help="Comment file to be processed")
     args = parser.parse_args()
     try:
@@ -61,8 +62,12 @@ def main():
     except ValueError:
         raise ValueError("Invalid stage size: %r" % args.size)
 
-    with open(args.file, "r") as f:
-        input = f.read()
+    try:
+        with open(args.file, "r" if args.format == "xml" else "rb") as f:
+            input = f.read()
+    except UnicodeDecodeError:
+        logging.error("无法解码该文件，推测其为 protobuf 文件，请添加 `-f protobuf` 参数")
+        sys.exit(1)
 
     if args.output:
         fo = open(args.output, "w", encoding="utf-8-sig", errors="replace", newline="\r\n")
@@ -72,6 +77,7 @@ def main():
         input,
         width,
         height,
+        args.format,
         args.protect,
         args.font,
         args.fontsize,

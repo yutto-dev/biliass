@@ -25,3 +25,6 @@ clean-builds:
   rm -rf biliass.egg-info/
   rm -rf build/
   rm -rf dist/
+
+compile-protobuf:
+  protoc --python_out=biliass protobuf/danmaku.proto
