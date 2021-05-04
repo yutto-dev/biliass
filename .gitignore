@@ -120,6 +120,7 @@ dmypy.json
 # bilili/yutto
 *.ass
 *.xml
+*.protobuf
 * - bilibili/
 
 # stub files

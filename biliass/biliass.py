@@ -6,7 +6,7 @@ import math
 import random
 import re
 import xml.dom.minidom
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, List, Generator, Tuple
 
 from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 
@@ -47,7 +47,10 @@ def export(func):
     return func
 
 
-def ReadCommentsBilibiliXml(text: Union[str, bytes], fontsize: float):
+Comment = Tuple[float, float, int, str, Union[int, str], int, float, float, float]
+
+
+def ReadCommentsBilibiliXml(text: Union[str, bytes], fontsize: float) -> Generator[Comment, None, None]:
     if isinstance(text, bytes):
         text = text.decode()
     text = FilterBadChars(text)
@@ -83,7 +86,7 @@ def ReadCommentsBilibiliXml(text: Union[str, bytes], fontsize: float):
             continue
 
 
-def ReadCommentsBilibiliProtobuf(protobuf: Union[bytes, str], fontsize: float):
+def ReadCommentsBilibiliProtobuf(protobuf: Union[bytes, str], fontsize: float) -> Generator[Comment, None, None]:
     assert isinstance(protobuf, bytes), "protobuf 仅支持使用 bytes 转换"
     target = DanmakuEvent()
     target.ParseFromString(protobuf)
@@ -537,7 +540,7 @@ class safe_list(list):
 
 @export
 def Danmaku2ASS(
-    input: Union[str, bytes],
+    inputs: Union[List[Union[str, bytes]], Union[str, bytes]],
     stage_width: int,
     stage_height: int,
     input_format: str = "xml",
@@ -551,7 +554,7 @@ def Danmaku2ASS(
     is_reduce_comments: bool = False,
     progress_callback: Optional[Callable[..., None]] = None,
 ) -> str:
-    comment_filters: list[str] = [comment_filter] if comment_filter is not None else []
+    comment_filters: List[str] = [comment_filter] if comment_filter is not None else []
     filters_regex = []
     for comment_filter in comment_filters:
         try:
@@ -560,13 +563,16 @@ def Danmaku2ASS(
         except:
             raise ValueError("Invalid regular expression: %s" % comment_filter)
 
-    if input_format == "xml":
-        comments = ReadCommentsBilibiliXml(input, font_size)
-    else:
-        if isinstance(input, str):
-            logging.warning("Protobuf 只能使用 bytes 转换")
-        comments = ReadCommentsBilibiliProtobuf(input, font_size)
-    comments = list(comments)
+    comments: List[Comment] = []
+    if not isinstance(inputs, list):
+        inputs = [inputs]
+    for input in inputs:
+        if input_format == "xml":
+            comments.extend(ReadCommentsBilibiliXml(input, font_size))
+        else:
+            if isinstance(input, str):
+                logging.warning("Protobuf 只能使用 bytes 转换")
+            comments.extend(ReadCommentsBilibiliProtobuf(input, font_size))
     comments.sort()
     return ProcessComments(
         comments,

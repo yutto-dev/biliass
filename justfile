@@ -16,6 +16,7 @@ upgrade:
 clean:
   find . -name "*.xml" -print0 | xargs -0 rm -f
   find . -name "*.ass" -print0 | xargs -0 rm -f
+  find . -name "*.protobuf" -print0 | xargs -0 rm -f
 
 clean-builds:
   rm biliass/py.typed
