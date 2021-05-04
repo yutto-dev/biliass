@@ -7,7 +7,7 @@ release:
   just clean-builds
 
 upgrade-pip:
-  python3 -m pip install --upgrade biliass
+  python3 -m pip install --upgrade --pre biliass
 
 upgrade:
   python3 setup.py build

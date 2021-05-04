@@ -3,7 +3,7 @@ import sys
 from shutil import rmtree
 
 from biliass.__version__ import __version__
-from setuptools import setup, Command
+from setuptools import setup, Command, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -75,7 +75,7 @@ setup(
     author="m13253, Nyakku Shigure",
     url="https://github.com/ShigureLab/biliass",
     license="GPLv3",
-    packages=["biliass"],
+    packages=find_packages(),
     package_data={"biliass": ["py.typed", "*.pyi", "**/*.pyi"]},
     include_package_data=True,
     zip_safe=True,
