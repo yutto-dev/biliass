@@ -81,6 +81,7 @@ setup(
     zip_safe=True,
     python_requires=">=3.6.0",
     setup_requires=["wheel"],
+    install_requires=["protobuf"],
     entry_points={"console_scripts": ["biliass = biliass.__main__:main"]},
     cmdclass={
         "upload": UploadCommand,
