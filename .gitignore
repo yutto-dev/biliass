@@ -122,6 +122,9 @@ dmypy.json
 *.xml
 *.protobuf
 * - bilibili/
+*.mp4
+*.m4s
+*.aac
 
 # stub files
 py.typed

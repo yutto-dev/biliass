@@ -55,6 +55,16 @@ def ReadCommentsBilibiliXml(text: Union[str, bytes], fontsize: float) -> Generat
         text = text.decode()
     text = FilterBadChars(text)
     dom = xml.dom.minidom.parseString(text)
+    version = dom.version
+    assert version in ["1.0", "2.0"], "未知的 XML 版本号 {}".format(version)
+    if version == "1.0":
+        return ReadCommentsBilibiliXmlV1(text, fontsize)
+    else:
+        return ReadCommentsBilibiliXmlV2(text, fontsize)
+
+
+def ReadCommentsBilibiliXmlV1(text: str, fontsize: float) -> Generator[Comment, None, None]:
+    dom = xml.dom.minidom.parseString(text)
     comment_element = dom.getElementsByTagName("d")
     for i, comment in enumerate(comment_element):
         try:
@@ -80,6 +90,40 @@ def ReadCommentsBilibiliXml(text: Union[str, bytes], fontsize: float) -> Generat
                     c = str(comment.childNodes[0].wholeText)
                     yield (float(p[0]), int(p[4]), i, c, "bilipos", int(p[3]), int(p[2]), 0, 0)
                 elif p[1] == "8":
+                    pass  # ignore scripted comment
+        except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
+            logging.warning("Invalid comment: %s" % comment.toxml())
+            continue
+
+
+def ReadCommentsBilibiliXmlV2(text: str, fontsize: float) -> Generator[Comment, None, None]:
+    dom = xml.dom.minidom.parseString(text)
+    comment_element = dom.getElementsByTagName("d")
+    for i, comment in enumerate(comment_element):
+        try:
+            p = str(comment.getAttribute("p")).split(",")
+            assert len(p) >= 7
+            assert p[3] in ("1", "4", "5", "6", "7", "8")
+            if comment.childNodes.length > 0:
+                time = float(p[2]) / 1000.0
+                if p[3] in ("1", "4", "5", "6"):
+                    c = str(comment.childNodes[0].wholeText).replace("/n", "\n")
+                    size = int(p[4]) * fontsize / 25.0
+                    yield (
+                        time,
+                        int(p[6]),
+                        i,
+                        c,
+                        {"1": 0, "4": 2, "5": 1, "6": 3}[p[3]],
+                        int(p[5]),
+                        size,
+                        (c.count("\n") + 1) * size,
+                        CalculateLength(c) * size,
+                    )
+                elif p[3] == "7":  # positioned comment
+                    c = str(comment.childNodes[0].wholeText)
+                    yield (time, int(p[6]), i, c, "bilipos", int(p[5]), int(p[4]), 0, 0)
+                elif p[3] == "8":
                     pass  # ignore scripted comment
         except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
             logging.warning("Invalid comment: %s" % comment.toxml())
