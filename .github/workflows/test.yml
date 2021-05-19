@@ -27,7 +27,7 @@ jobs:
 
       - name: Gen test files
         run: |
-          python scripts/gen_test_files
+          python scripts/gen_test_files.py
 
       - name: Run tests
         run: |
