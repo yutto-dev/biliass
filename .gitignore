@@ -128,4 +128,4 @@ dmypy.json
 
 # stub files
 py.typed
-*.pyi
+biliass/biliass.pyi
