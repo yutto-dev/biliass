@@ -120,7 +120,7 @@ dmypy.json
 # bilili/yutto
 *.ass
 *.xml
-*.protobuf
+*.pb
 * - bilibili/
 *.mp4
 *.m4s

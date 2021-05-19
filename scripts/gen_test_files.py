@@ -13,7 +13,7 @@ def gen_xml_v1(base_dir: str):
 
 
 def gen_protobuf(base_dir: str):
-    filename = "test.protobuf"
+    filename = "test.pb"
     filepath = os.path.join(base_dir, filename)
     cid = "18678311"
     resp = requests.get(
