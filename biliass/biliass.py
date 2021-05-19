@@ -50,6 +50,7 @@ def export(func):
 Comment = Tuple[float, float, int, str, Union[int, str], int, float, float, float]
 
 
+@export
 def ReadCommentsBilibiliXml(text: Union[str, bytes], fontsize: float) -> Generator[Comment, None, None]:
     if isinstance(text, bytes):
         text = text.decode()
@@ -130,6 +131,7 @@ def ReadCommentsBilibiliXmlV2(text: str, fontsize: float) -> Generator[Comment, 
             continue
 
 
+@export
 def ReadCommentsBilibiliProtobuf(protobuf: Union[bytes, str], fontsize: float) -> Generator[Comment, None, None]:
     assert isinstance(protobuf, bytes), "protobuf 仅支持使用 bytes 转换"
     target = DanmakuEvent()
