@@ -3,13 +3,15 @@ import logging
 import sys
 
 from biliass import Danmaku2ASS
+from biliass.__version__ import VERSION as biliass_version
 
 
 def main():
     logging.basicConfig(format="%(levelname)s: %(message)s")
     if len(sys.argv) == 1:
         sys.argv.append("--help")
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="bilibili ASS 弹幕转换", prog="biliass")
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s {}".format(biliass_version))
     parser.add_argument("-o", "--output", metavar="OUTPUT", help="Output file")
     parser.add_argument("-s", "--size", metavar="WIDTHxHEIGHT", required=True, help="Stage size in pixels")
     parser.add_argument(
