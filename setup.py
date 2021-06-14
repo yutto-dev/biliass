@@ -2,7 +2,7 @@ import os
 import sys
 from shutil import rmtree
 
-from biliass.__version__ import __version__
+from biliass.__version__ import VERSION as biliass_version
 from setuptools import setup, Command, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -43,7 +43,7 @@ class UploadCommand(Command):
         os.system("twine upload dist/*")
 
         self.status("Pushing git tags…")
-        os.system("git tag v{0}".format(__version__))
+        os.system("git tag v{0}".format(biliass_version))
         os.system("git push --tags")
 
         sys.exit()
@@ -57,7 +57,7 @@ def get_long_description():
 
 setup(
     name="biliass",
-    version=__version__,
+    version=biliass_version,
     description="将 B 站 XML 弹幕转换为 ASS 弹幕",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
