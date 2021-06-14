@@ -27,7 +27,7 @@ pip install biliass
 # XML 弹幕
 biliass danmaku.xml -s 1920x1080 -o danmaku.ass
 # protobuf 弹幕
-biliass danmaku.pb -s 1920x1080 -f pb -o danmaku.ass
+biliass danmaku.pb -s 1920x1080 -f protobuf -o danmaku.ass
 ```
 
 ```python
