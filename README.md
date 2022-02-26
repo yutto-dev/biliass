@@ -15,13 +15,13 @@ biliass，只是 Danmaku2ASS 的 bilili 与 yutto 适配版
 
 仅支持 bilibili 弹幕，支持 XML 弹幕和 Protobuf 弹幕
 
-# Install
+## Install
 
 ```bash
 pip install biliass
 ```
 
-# Usage
+## Usage
 
 ```bash
 # XML 弹幕
@@ -67,3 +67,7 @@ Danmaku2ASS(
     progress_callback=None,
 )
 ```
+
+## TODO
+
+- 导出 bilibili 网页上的弹幕设置，并导入到 biliass

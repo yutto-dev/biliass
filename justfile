@@ -2,7 +2,7 @@
 run:
   python3 -m biliass
 
-release:
+publish:
   python3 setup.py upload
   just clean-builds
 
