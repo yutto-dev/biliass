@@ -72,7 +72,7 @@ setup(
     ],
     keywords="bilibili danmaku xml ass",
     author="m13253, Nyakku Shigure",
-    url="https://github.com/ShigureLab/biliass",
+    url="https://github.com/yutto-dev/biliass",
     license="GPLv3",
     packages=find_packages(),
     package_data={"biliass": ["py.typed", "*.pyi", "**/*.pyi"]},
