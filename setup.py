@@ -64,7 +64,6 @@ setup(
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
@@ -79,7 +78,7 @@ setup(
     package_data={"biliass": ["py.typed", "*.pyi", "**/*.pyi"]},
     include_package_data=True,
     zip_safe=True,
-    python_requires=">=3.6.0",
+    python_requires=">=3.7.0",
     setup_requires=["wheel"],
     install_requires=["protobuf>=4.21.0"],
     entry_points={"console_scripts": ["biliass = biliass.__main__:main"]},
