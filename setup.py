@@ -2,7 +2,6 @@ import os
 import sys
 from shutil import rmtree
 
-from biliass.__version__ import VERSION as biliass_version
 from setuptools import setup, Command, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -57,7 +56,7 @@ def get_long_description():
 
 setup(
     name="biliass",
-    version=biliass_version,
+    version="1.3.6",
     description="将 B 站 XML 弹幕转换为 ASS 弹幕",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",

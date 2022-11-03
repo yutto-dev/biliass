@@ -1,3 +1,3 @@
-VERSION_TUPLE = (1, 3, 5)
+from __future__ import annotations
 
-VERSION = ".".join(map(str, VERSION_TUPLE))
+VERSION = "1.3.6"
