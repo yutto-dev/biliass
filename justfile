@@ -1,22 +1,29 @@
+VERSION := `poetry run python -c "import sys; from biliass import __version__ as version; sys.stdout.write(version)"`
 
-run:
-  python3 -m biliass
-
-publish:
-  python3 setup.py upload
-  just clean-builds
+install:
+  poetry install
 
 test:
   just gen-test-files
-  pytest
+  poetry run pytest
   just clean
 
-upgrade-pip:
-  python3 -m pip install --upgrade --pre biliass
+fmt:
+  poetry run isort .
+  poetry run black .
 
-upgrade:
-  python3 setup.py build
-  python3 setup.py install
+fmt-docs:
+  prettier --write '**/*.md'
+
+build:
+  poetry build
+
+publish:
+  touch biliass/py.typed
+  poetry publish --build
+  git tag "v{{VERSION}}"
+  git push --tags
+  just clean-builds
 
 clean:
   find . -name "*.xml" -print0 | xargs -0 rm -f
@@ -39,8 +46,17 @@ clean-builds:
   rm -rf build/
   rm -rf dist/
 
+ci-fmt-check:
+  poetry run isort --check-only .
+  poetry run black --check --diff .
+  prettier --check '**/*.md'
+
+ci-test:
+  poetry run pytest --reruns 3 --reruns-delay 1
+  just clean
+
 compile-protobuf:
   protoc --python_out=biliass protobuf/danmaku.proto
 
 gen-test-files:
-  python3 scripts/gen_test_files.py
+  poetry run python scripts/gen_test_files.py
