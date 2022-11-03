@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import argparse
 import logging
 import sys
 
 from biliass import Danmaku2ASS
-from biliass.__version__ import VERSION as biliass_version
+from biliass import __version__ as biliass_version
 
 
 def main():

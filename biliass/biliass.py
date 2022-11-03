@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import json
 import logging
 import math
 import random
 import re
 import xml.dom.minidom
-from typing import Callable, Optional, Union, List, Generator, Tuple
+from typing import Callable, Generator, List, Optional, Tuple, Union
 
 from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 
