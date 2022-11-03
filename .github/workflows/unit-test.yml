@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         if: steps.poetry-cache.outputs.cache-hit != 'true'
         run: |
-          just install
+          poetry install
 
       - name: unit test
         run: |
