@@ -52,6 +52,7 @@ ci-fmt-check:
   prettier --check '**/*.md'
 
 ci-test:
+  just gen-test-files
   poetry run pytest --reruns 3 --reruns-delay 1
   just clean
 
