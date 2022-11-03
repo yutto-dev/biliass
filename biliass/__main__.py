@@ -12,7 +12,7 @@ def main():
     logging.basicConfig(format="%(levelname)s: %(message)s")
     if len(sys.argv) == 1:
         sys.argv.append("--help")
-    parser = argparse.ArgumentParser(description="bilibili ASS 弹幕转换", prog="biliass")
+    parser = argparse.ArgumentParser(description="bilibili ASS Danmaku converter", prog="biliass")
     parser.add_argument("-v", "--version", action="version", version="%(prog)s {}".format(biliass_version))
     parser.add_argument("-o", "--output", metavar="OUTPUT", help="Output file")
     parser.add_argument("-s", "--size", metavar="WIDTHxHEIGHT", required=True, help="Stage size in pixels")
@@ -56,7 +56,7 @@ def main():
         "-p", "--protect", metavar="HEIGHT", help="Reserve blank on the bottom of the stage", type=int, default=0
     )
     parser.add_argument("-r", "--reduce", action="store_true", help="Reduce the amount of comments if stage is full")
-    parser.add_argument("-f", "--format", choices=["xml", "protobuf"], default="xml", help="输入文件的格式（XML 或 protobuf）")
+    parser.add_argument("-f", "--format", choices=["xml", "protobuf"], default="xml", help="Input danmaku format (xml or protobuf)")
     parser.add_argument("file", metavar="FILE", nargs="+", help="Comment file to be processed")
     args = parser.parse_args()
     try:
@@ -72,7 +72,7 @@ def main():
             with open(file, "r" if args.format == "xml" else "rb") as f:
                 inputs.append(f.read())
         except UnicodeDecodeError:
-            logging.error("无法解码该文件，推测其为 protobuf 文件，请添加 `-f protobuf` 参数")
+            logging.error(f"Failed to decode file {file}, if it is a protobuf file, please use `-f protobuf`")
             sys.exit(1)
 
     if args.output:
