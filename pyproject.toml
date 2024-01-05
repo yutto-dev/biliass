@@ -42,9 +42,7 @@ line-length = 120
 [tool.ruff]
 line-length = 120
 target-version = "py38"
-exclude = [
-  "*_pb2.py"
-]
+exclude = ["*_pb2.py"]
 
 [tool.ruff.lint]
 select = [
