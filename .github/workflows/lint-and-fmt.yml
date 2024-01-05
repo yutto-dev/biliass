@@ -1,0 +1,47 @@
+name: Lint and Format
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+jobs:
+  lint-and-fmt:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8"]
+        architecture: ["x64"]
+    name: Python ${{ matrix.python-version }} on ${{ matrix.architecture }} lint and format check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.architecture }}
+          cache: "poetry"
+
+      - name: Install just
+        uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: |
+          just ci-install
+
+      - name: lint
+        run: |
+          just ci-lint
+
+      - name: format check
+        run: |
+          just ci-fmt-check

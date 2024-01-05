@@ -8,7 +8,8 @@ import math
 import random
 import re
 import xml.dom.minidom
-from typing import Callable, Generator, List, Optional, Tuple, Union
+from collections.abc import Generator
+from typing import Callable, List, Optional, Tuple, Union
 
 from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 
@@ -40,26 +41,16 @@ from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 #
 
 
-def export(func):
-    global __all__
-    try:
-        __all__.append(func.__name__)
-    except NameError:
-        __all__ = [func.__name__]
-    return func
+Comment = tuple[float, float, int, str, Union[int, str], int, float, float, float]
 
 
-Comment = Tuple[float, float, int, str, Union[int, str], int, float, float, float]
-
-
-@export
-def ReadCommentsBilibiliXml(text: Union[str, bytes], fontsize: float) -> Generator[Comment, None, None]:
+def ReadCommentsBilibiliXml(text: str | bytes, fontsize: float) -> Generator[Comment, None, None]:
     if isinstance(text, bytes):
         text = text.decode()
     text = FilterBadChars(text)
     dom = xml.dom.minidom.parseString(text)
     version = dom.version
-    assert version in ["1.0", "2.0"], "未知的 XML 版本号 {}".format(version)
+    assert version in ["1.0", "2.0"], f"未知的 XML 版本号 {version}"
     if version == "1.0":
         return ReadCommentsBilibiliXmlV1(text, fontsize)
     else:
@@ -133,8 +124,7 @@ def ReadCommentsBilibiliXmlV2(text: str, fontsize: float) -> Generator[Comment, 
             continue
 
 
-@export
-def ReadCommentsBilibiliProtobuf(protobuf: Union[bytes, str], fontsize: float) -> Generator[Comment, None, None]:
+def ReadCommentsBilibiliProtobuf(protobuf: bytes | str, fontsize: float) -> Generator[Comment, None, None]:
     assert isinstance(protobuf, bytes), "protobuf 仅支持使用 bytes 转换"
     target = DanmakuEvent()
     target.ParseFromString(protobuf)
@@ -219,16 +209,17 @@ class AssText:
             to_rotarg = ConvertFlashRotation(rotate_y, rotate_z, to_x, to_y, width, height)
             styles = ["\\org(%d, %d)" % (width / 2, height / 2)]
             if from_rotarg[0:2] == to_rotarg[0:2]:
-                styles.append("\\pos(%.0f, %.0f)" % (from_rotarg[0:2]))
+                styles.append("\\pos({:.0f}, {:.0f})".format(*from_rotarg[0:2]))
             else:
                 styles.append(
-                    "\\move(%.0f, %.0f, %.0f, %.0f, %.0f, %.0f)"
-                    % (from_rotarg[0:2] + to_rotarg[0:2] + (delay, delay + duration))
+                    "\\move({:.0f}, {:.0f}, {:.0f}, {:.0f}, {:.0f}, {:.0f})".format(
+                        *(from_rotarg[0:2] + to_rotarg[0:2] + (delay, delay + duration))
+                    )
                 )
-            styles.append("\\frx%.0f\\fry%.0f\\frz%.0f\\fscx%.0f\\fscy%.0f" % (from_rotarg[2:7]))
+            styles.append("\\frx{:.0f}\\fry{:.0f}\\frz{:.0f}\\fscx{:.0f}\\fscy{:.0f}".format(*from_rotarg[2:7]))
             if (from_x, from_y) != (to_x, to_y):
-                styles.append("\\t(%d, %d, " % (delay, delay + duration))
-                styles.append("\\frx%.0f\\fry%.0f\\frz%.0f\\fscx%.0f\\fscy%.0f" % (to_rotarg[2:7]))
+                styles.append(f"\\t({delay:d}, {delay + duration:d}, ")
+                styles.append("\\frx{:.0f}\\fry{:.0f}\\frz{:.0f}\\fscx{:.0f}\\fscy{:.0f}".format(*to_rotarg[2:7]))
                 styles.append(")")
             if fontface:
                 styles.append("\\fn%s" % ASSEscape(fontface))
@@ -245,23 +236,24 @@ class AssText:
                 styles.append("\\fad(0, %.0f)" % (lifetime * 1000))
             else:
                 styles.append(
-                    "\\fade(%(from_alpha)d, %(to_alpha)d, %(to_alpha)d, 0, %(end_time).0f, %(end_time).0f, %(end_time).0f)"
-                    % {"from_alpha": from_alpha, "to_alpha": to_alpha, "end_time": lifetime * 1000}
+                    "\\fade({from_alpha:d}, {to_alpha:d}, {to_alpha:d}, 0, {end_time:.0f}, {end_time:.0f}, {end_time:.0f})".format(
+                        from_alpha=from_alpha, to_alpha=to_alpha, end_time=lifetime * 1000
+                    )
                 )
             if isborder == "false":
                 styles.append("\\bord0")
-            self._text += "Dialogue: -1,%(start)s,%(end)s,%(styleid)s,,0,0,0,,{%(styles)s}%(text)s\n" % {
-                "start": ConvertTimestamp(c[0]),
-                "end": ConvertTimestamp(c[0] + lifetime),
-                "styles": "".join(styles),
-                "text": text,
-                "styleid": styleid,
-            }
-        except (IndexError, ValueError) as e:
+            self._text += "Dialogue: -1,{start},{end},{styleid},,0,0,0,,{{{styles}}}{text}\n".format(
+                start=ConvertTimestamp(c[0]),
+                end=ConvertTimestamp(c[0] + lifetime),
+                styles="".join(styles),
+                text=text,
+                styleid=styleid,
+            )
+        except (IndexError, ValueError):
             try:
-                logging.warning("Invalid comment: %r" % c[3])
+                logging.warning(f"Invalid comment: {c[3]:r}")
             except IndexError:
-                logging.warning("Invalid comment: %r" % c)
+                logging.warning(f"Invalid comment: {c:r}")
 
     def WriteASSHead(self, width, height, fontface, fontsize, alpha, styleid):
         self._text += """[Script Info]
@@ -323,13 +315,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             styles.append("\\c&H%s&" % ConvertColor(c[5]))
             if c[5] == 0x000000:
                 styles.append("\\3c&HFFFFFF&")
-        self._text += "Dialogue: 2,%(start)s,%(end)s,%(styleid)s,,0000,0000,0000,,{%(styles)s}%(text)s\n" % {
-            "start": ConvertTimestamp(c[0]),
-            "end": ConvertTimestamp(c[0] + duration),
-            "styles": "".join(styles),
-            "text": text,
-            "styleid": styleid,
-        }
+        self._text += "Dialogue: 2,{start},{end},{styleid},,0000,0000,0000,,{{{styles}}}{text}\n".format(
+            start=ConvertTimestamp(c[0]),
+            end=ConvertTimestamp(c[0] + duration),
+            styles="".join(styles),
+            text=text,
+            styleid=styleid,
+        )
 
     def to_file(self, f):
         f.write(self._text)
@@ -408,7 +400,7 @@ def ConvertFlashRotation(rotY, rotZ, X, Y, width, height):
         scaleXY = -scaleXY
         outX += 180
         outY += 180
-        logging.error("Rotation makes object behind the camera: trZ == %.0f < %.0f" % (trZ, FOV))
+        logging.error(f"Rotation makes object behind the camera: trZ == {trZ:.0f} < {FOV:.0f}")
     return (trX, trY, WrapAngle(outX), WrapAngle(outY), WrapAngle(outZ), scaleXY * 100, scaleXY * 100)
 
 
@@ -532,10 +524,8 @@ def ASSEscape(s):
             return "".join(("\u2007" * llen, sstrip, "\u2007" * rlen))
 
     return "\\N".join(
-        (
-            ReplaceLeadingSpace(i) or " "
-            for i in str(s).replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}").split("\n")
-        )
+        ReplaceLeadingSpace(i) or " "
+        for i in str(s).replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}").split("\n")
     )
 
 
@@ -560,10 +550,13 @@ def ConvertColor(RGB, width=1280, height=576):
     G = (RGB >> 8) & 0xFF
     B = RGB & 0xFF
     if width < 1280 and height < 576:
-        return "%02X%02X%02X" % (B, G, R)
+        return f"{B:02X}{G:02X}{R:02X}"
     else:  # VobSub always uses BT.601 colorspace, convert to BT.709
-        ClipByte = lambda x: 255 if x > 255 else 0 if x < 0 else round(x)
-        return "%02X%02X%02X" % (
+
+        def ClipByte(x):
+            return 255 if x > 255 else 0 if x < 0 else round(x)
+
+        return "{:02X}{:02X}{:02X}".format(
             ClipByte(R * 0.00956384088080656 + G * 0.03217254540203729 + B * 0.95826361371715607),
             ClipByte(R * -0.10493933142075390 + G * 1.17231478191855154 + B * -0.06737545049779757),
             ClipByte(R * 0.91348912373987645 + G * 0.07858536372532510 + B * 0.00792551253479842),
@@ -586,9 +579,8 @@ class safe_list(list):
             return default
 
 
-@export
 def Danmaku2ASS(
-    inputs: Union[List[Union[str, bytes]], Union[str, bytes]],
+    inputs: list[str | bytes] | str | bytes,
     stage_width: int,
     stage_height: int,
     input_format: str = "xml",
@@ -598,20 +590,20 @@ def Danmaku2ASS(
     text_opacity: float = 1.0,
     duration_marquee: float = 5.0,
     duration_still: float = 5.0,
-    comment_filter: Optional[str] = None,
+    comment_filter: str | None = None,
     is_reduce_comments: bool = False,
-    progress_callback: Optional[Callable[..., None]] = None,
+    progress_callback: Callable[..., None] | None = None,
 ) -> str:
-    comment_filters: List[str] = [comment_filter] if comment_filter is not None else []
+    comment_filters: list[str] = [comment_filter] if comment_filter is not None else []
     filters_regex = []
     for comment_filter in comment_filters:
         try:
             if comment_filter:
                 filters_regex.append(re.compile(comment_filter))
-        except:
+        except:  # noqa: E722
             raise ValueError("Invalid regular expression: %s" % comment_filter)
 
-    comments: List[Comment] = []
+    comments: list[Comment] = []
     if not isinstance(inputs, list):
         inputs = [inputs]
     for input in inputs:

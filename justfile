@@ -9,11 +9,13 @@ test:
   just clean
 
 fmt:
-  poetry run isort .
-  poetry run black .
+  poetry run ruff format .
 
 fmt-docs:
   prettier --write '**/*.md'
+
+lint:
+  poetry run ruff check .
 
 build:
   poetry build
@@ -46,10 +48,15 @@ clean-builds:
   rm -rf build/
   rm -rf dist/
 
+ci-install:
+  poetry install --no-interaction --no-root
+
 ci-fmt-check:
-  poetry run isort --check-only .
-  poetry run black --check --diff .
+  poetry run ruff format --check --diff .
   prettier --check '**/*.md'
+
+ci-lint:
+  just lint
 
 ci-test:
   just gen-test-files

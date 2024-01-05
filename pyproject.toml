@@ -23,15 +23,15 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 protobuf = "^4.21.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
-black = "^22.1"
 tomli = { version = "^2.0.1", python = "<3.11" }
 pytest-rerunfailures = "^10.2"
 requests = "^2.28.1"
+ruff = "^0.1.11"
 
 [tool.poetry.scripts]
 biliass = "biliass.__main__:main"
@@ -39,10 +39,41 @@ biliass = "biliass.__main__:main"
 [tool.black]
 line-length = 120
 
-[tool.isort]
-profile = "black"
-add_imports = ["from __future__ import annotations"]
-skip = ["setup.py", ".venv"]
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+exclude = [
+  "*_pb2.py"
+]
+
+[tool.ruff.lint]
+select = [
+  # Pyflakes
+  "F",
+  # Pycodestyle
+  "E",
+  "W",
+  # Isort
+  "I",
+  # Pyupgrade
+  "UP",
+  # Flake8-pyi
+  "PYI",
+  # Yesqa
+  "RUF100",
+]
+ignore = [
+  "E501", # line too long, duplicate with ruff fmt
+  "F401", # imported but unused, duplicate with pyright
+  "F841", # local variable is assigned to but never used, duplicate with pyright
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+known-first-party = ["yutto"]
+
+[tool.ruff.lint.per-file-ignores]
+"setup.py" = ["I"]
 
 [build-system]
 requires = ["poetry-core>=1.1.0"]
