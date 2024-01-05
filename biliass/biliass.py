@@ -9,7 +9,7 @@ import random
 import re
 import xml.dom.minidom
 from collections.abc import Generator
-from typing import Callable, Union
+from typing import Callable, Tuple, Union
 
 from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 
@@ -41,7 +41,7 @@ from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 #
 
 
-Comment = tuple[float, float, int, str, Union[int, str], int, float, float, float]
+Comment = Tuple[float, float, int, str, Union[int, str], int, float, float, float]
 
 
 def ReadCommentsBilibiliXml(text: str | bytes, fontsize: float) -> Generator[Comment, None, None]:
