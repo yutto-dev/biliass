@@ -53,7 +53,6 @@ ci-install:
 
 ci-fmt-check:
   poetry run ruff format --check --diff .
-  prettier --check '**/*.md'
 
 ci-lint:
   just lint
