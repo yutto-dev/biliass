@@ -1,4 +1,4 @@
-name: Unit Test
+name: Lint and Format
 
 on:
   push:
@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  unit-test:
+  lint-and-fmt:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8"]
         architecture: ["x64"]
-    name: Python ${{ matrix.python-version }} on ${{ matrix.architecture }} unit test
+    name: Python ${{ matrix.python-version }} on ${{ matrix.architecture }} lint and format check
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +38,10 @@ jobs:
         run: |
           poetry install
 
-      - name: unit test
+      - name: lint
         run: |
-          just ci-test
+          just ci-lint
+
+      - name: format check
+        run: |
+          just ci-fmt-check

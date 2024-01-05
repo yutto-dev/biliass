@@ -4,7 +4,7 @@ from biliass import ReadCommentsBilibiliXml
 
 
 def test_xml_v1_text():
-    with open("./tests/test_files/test_v1.xml", "r") as f:
+    with open("./tests/test_files/test_v1.xml") as f:
         ReadCommentsBilibiliXml(f.read(), 10)
 
 

@@ -13,21 +13,21 @@ def main():
     if len(sys.argv) == 1:
         sys.argv.append("--help")
     parser = argparse.ArgumentParser(description="bilibili ASS Danmaku converter", prog="biliass")
-    parser.add_argument("-v", "--version", action="version", version="%(prog)s {}".format(biliass_version))
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {biliass_version}")
     parser.add_argument("-o", "--output", metavar="OUTPUT", help="Output file")
     parser.add_argument("-s", "--size", metavar="WIDTHxHEIGHT", required=True, help="Stage size in pixels")
     parser.add_argument(
         "-fn",
         "--font",
         metavar="FONT",
-        help="Specify font face [default: %s]" % "sans-serif",
+        help="Specify font face [default: sans-serif]",
         default="sans-serif",
     )
     parser.add_argument(
         "-fs",
         "--fontsize",
         metavar="SIZE",
-        help=("Default font size [default: %s]" % 25),
+        help="Default font size [default: 25]",
         type=float,
         default=25.0,
     )
@@ -36,7 +36,7 @@ def main():
         "-dm",
         "--duration-marquee",
         metavar="SECONDS",
-        help="Duration of scrolling comment display [default: %s]" % 5,
+        help="Duration of scrolling comment display [default: 5]",
         type=float,
         default=5.0,
     )
@@ -44,7 +44,7 @@ def main():
         "-ds",
         "--duration-still",
         metavar="SECONDS",
-        help="Duration of still comment display [default: %s]" % 5,
+        help="Duration of still comment display [default: 5]",
         type=float,
         default=5.0,
     )
@@ -56,7 +56,9 @@ def main():
         "-p", "--protect", metavar="HEIGHT", help="Reserve blank on the bottom of the stage", type=int, default=0
     )
     parser.add_argument("-r", "--reduce", action="store_true", help="Reduce the amount of comments if stage is full")
-    parser.add_argument("-f", "--format", choices=["xml", "protobuf"], default="xml", help="Input danmaku format (xml or protobuf)")
+    parser.add_argument(
+        "-f", "--format", choices=["xml", "protobuf"], default="xml", help="Input danmaku format (xml or protobuf)"
+    )
     parser.add_argument("file", metavar="FILE", nargs="+", help="Comment file to be processed")
     args = parser.parse_args()
     try:
