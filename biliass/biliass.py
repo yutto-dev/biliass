@@ -9,7 +9,7 @@ import random
 import re
 import xml.dom.minidom
 from collections.abc import Generator
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Union
 
 from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 
