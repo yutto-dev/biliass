@@ -71,7 +71,7 @@ def main():
     inputs = []
     for file in args.file:
         try:
-            with open(file, "r" if args.format == "xml" else "rb") as f:
+            with open(file, "r" if args.format == "xml" else "rb", encoding="utf-8") as f:
                 inputs.append(f.read())
         except UnicodeDecodeError:
             logging.error(f"Failed to decode file {file}, if it is a protobuf file, please use `-f protobuf`")
