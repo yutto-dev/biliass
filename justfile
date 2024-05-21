@@ -18,6 +18,7 @@ lint:
   poetry run ruff check .
 
 build:
+  touch biliass/py.typed
   poetry build
 
 release:
