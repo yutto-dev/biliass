@@ -36,9 +36,6 @@ ruff = "^0.1.11"
 [tool.poetry.scripts]
 biliass = "biliass.__main__:main"
 
-[tool.black]
-line-length = 120
-
 [tool.ruff]
 line-length = 120
 target-version = "py38"
