@@ -9,7 +9,7 @@ import random
 import re
 import xml.dom.minidom
 from collections.abc import Generator
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple, TypeVar, Union
 
 from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 
@@ -41,6 +41,7 @@ from biliass.protobuf.danmaku_pb2 import DanmakuEvent
 #
 
 
+T = TypeVar("T")
 Comment = Tuple[float, float, int, str, Union[int, str], int, float, float, float]
 
 
@@ -200,7 +201,7 @@ class AssText:
             to_alpha = 255 - round(to_alpha * 255)
             rotate_z = int(comment_args.get(5, 0))
             rotate_y = int(comment_args.get(6, 0))
-            lifetime = float(comment_args.get(3, 4500))
+            lifetime = float(wrap_default(comment_args.get(3, 4500), 4500))
             duration = int(comment_args.get(9, lifetime * 1000))
             delay = int(comment_args.get(10, 0))
             fontface = comment_args.get(12)
@@ -575,6 +576,10 @@ class safe_list(list):
             return self[index]
         except IndexError:
             return default
+
+
+def wrap_default(value: T | None, default: T) -> T:
+    return default if value is None else value
 
 
 def Danmaku2ASS(
