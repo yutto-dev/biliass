@@ -66,7 +66,7 @@ def main():
         width = int(width)
         height = int(height)
     except ValueError:
-        raise ValueError("Invalid stage size: %r" % args.size)
+        raise ValueError(f"Invalid stage size: {args.size!r}")
 
     inputs = []
     for file in args.file:

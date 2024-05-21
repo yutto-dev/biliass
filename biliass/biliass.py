@@ -86,7 +86,7 @@ def ReadCommentsBilibiliXmlV1(text: str, fontsize: float) -> Generator[Comment, 
                 elif p[1] == "8":
                     pass  # ignore scripted comment
         except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %s" % comment.toxml())
+            logging.warning(f"Invalid comment: {comment.toxml()}")
             continue
 
 
@@ -120,7 +120,7 @@ def ReadCommentsBilibiliXmlV2(text: str, fontsize: float) -> Generator[Comment, 
                 elif p[3] == "8":
                     pass  # ignore scripted comment
         except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %s" % comment.toxml())
+            logging.warning(f"Invalid comment: {comment.toxml()}")
             continue
 
 
@@ -151,7 +151,7 @@ def ReadCommentsBilibiliProtobuf(protobuf: bytes | str, fontsize: float) -> Gene
             elif elem.mode == 8:
                 pass  # ignore scripted comment
         except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-            logging.warning("Invalid comment: %s" % elem.content)
+            logging.warning(f"Invalid comment: {elem.content}")
             continue
 
 
@@ -222,23 +222,21 @@ class AssText:
                 styles.append("\\frx{:.0f}\\fry{:.0f}\\frz{:.0f}\\fscx{:.0f}\\fscy{:.0f}".format(*to_rotarg[2:7]))
                 styles.append(")")
             if fontface:
-                styles.append("\\fn%s" % ASSEscape(fontface))
+                styles.append(f"\\fn{ASSEscape(fontface)}")
             styles.append("\\fs%.0f" % (c[6] * ZoomFactor[0]))
             if c[5] != 0xFFFFFF:
-                styles.append("\\c&H%s&" % ConvertColor(c[5]))
+                styles.append(f"\\c&H{ConvertColor(c[5])}&")
                 if c[5] == 0x000000:
                     styles.append("\\3c&HFFFFFF&")
             if from_alpha == to_alpha:
-                styles.append("\\alpha&H%02X" % from_alpha)
+                styles.append(f"\\alpha&H{from_alpha:02X}")
             elif (from_alpha, to_alpha) == (255, 0):
-                styles.append("\\fad(%.0f,0)" % (lifetime * 1000))
+                styles.append(f"\\fad({lifetime * 1000:.0f},0)")
             elif (from_alpha, to_alpha) == (0, 255):
-                styles.append("\\fad(0, %.0f)" % (lifetime * 1000))
+                styles.append(f"\\fad(0, {lifetime * 1000:.0f})")
             else:
                 styles.append(
-                    "\\fade({from_alpha:d}, {to_alpha:d}, {to_alpha:d}, 0, {end_time:.0f}, {end_time:.0f}, {end_time:.0f})".format(
-                        from_alpha=from_alpha, to_alpha=to_alpha, end_time=lifetime * 1000
-                    )
+                    f"\\fade({from_alpha:d}, {to_alpha:d}, {to_alpha:d}, 0, {lifetime * 1000:.0f}, {lifetime * 1000:.0f}, {lifetime * 1000:.0f})"
                 )
             if isborder == "false":
                 styles.append("\\bord0")
@@ -310,9 +308,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             )
             duration = duration_marquee
         if not (-1 < c[6] - fontsize < 1):
-            styles.append("\\fs%.0f" % c[6])
+            styles.append(f"\\fs{c[6]:.0f}")
         if c[5] != 0xFFFFFF:
-            styles.append("\\c&H%s&" % ConvertColor(c[5]))
+            styles.append(f"\\c&H{ConvertColor(c[5])}&")
             if c[5] == 0x000000:
                 styles.append("\\3c&HFFFFFF&")
         self._text += "Dialogue: 2,{start},{end},{styleid},,0000,0000,0000,,{{{styles}}}{text}\n".format(
@@ -392,7 +390,7 @@ def ConvertFlashRotation(rotY, rotZ, X, Y, width, height):
     try:
         scaleXY = FOV / (FOV + trZ)
     except ZeroDivisionError:
-        logging.error("Rotation makes object behind the camera: trZ == %.0f" % trZ)
+        logging.error(f"Rotation makes object behind the camera: trZ == {trZ:.0f}")
         scaleXY = 1
     trX = (trX - width / 2) * scaleXY + width / 2
     trY = (trY - height / 2) * scaleXY + height / 2
@@ -418,7 +416,7 @@ def ProcessComments(
     reduced,
     progress_callback,
 ):
-    styleid = "biliass_%04x" % random.randint(0, 0xFFFF)
+    styleid = f"biliass_{random.randint(0, 0xFFFF):04x}"
     ass = AssText()
     ass.WriteASSHead(width, height, fontface, fontsize, alpha, styleid)
     rows = [[None] * (height - bottomReserved + 1) for i in range(4)]
@@ -455,7 +453,7 @@ def ProcessComments(
         elif i[4] == "bilipos":
             ass.WriteCommentBilibiliPositioned(i, width, height, styleid)
         else:
-            logging.warning("Invalid comment: %r" % i[3])
+            logging.warning(f"Invalid comment: {i[3]!r}")
     if progress_callback:
         progress_callback(len(comments), len(comments))
     return ass.to_string()
@@ -556,7 +554,7 @@ def ConvertColor(RGB, width=1280, height=576):
         def ClipByte(x):
             return 255 if x > 255 else 0 if x < 0 else round(x)
 
-        return "{:02X}{:02X}{:02X}".format(
+        return "{:02X}{:02X}{:02X}".format(  # noqa: UP032
             ClipByte(R * 0.00956384088080656 + G * 0.03217254540203729 + B * 0.95826361371715607),
             ClipByte(R * -0.10493933142075390 + G * 1.17231478191855154 + B * -0.06737545049779757),
             ClipByte(R * 0.91348912373987645 + G * 0.07858536372532510 + B * 0.00792551253479842),
@@ -601,7 +599,7 @@ def Danmaku2ASS(
             if comment_filter:
                 filters_regex.append(re.compile(comment_filter))
         except:  # noqa: E722
-            raise ValueError("Invalid regular expression: %s" % comment_filter)
+            raise ValueError(f"Invalid regular expression: {comment_filter}")
 
     comments: list[Comment] = []
     if not isinstance(inputs, list):
