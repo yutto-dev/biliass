@@ -250,9 +250,9 @@ class AssText:
             )
         except (IndexError, ValueError):
             try:
-                logging.warning(f"Invalid comment: {c[3]:r}")
+                logging.warning(f"Invalid comment: {c[3]!r}")
             except IndexError:
-                logging.warning(f"Invalid comment: {c:r}")
+                logging.warning(f"Invalid comment: {c!r}")
 
     def WriteASSHead(self, width, height, fontface, fontsize, alpha, styleid):
         self._text += """[Script Info]
