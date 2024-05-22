@@ -30,7 +30,7 @@ protobuf = "^4.21.9"
 pytest = "^7.2.2"
 tomli = { version = "^2.0.1", python = "<3.11" }
 pytest-rerunfailures = "^10.2"
-requests = "^2.32.1"
+requests = "^2.32.2"
 ruff = "^0.4.4"
 
 [tool.poetry.scripts]
