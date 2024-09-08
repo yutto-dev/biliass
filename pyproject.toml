@@ -38,7 +38,7 @@ biliass = "biliass.__main__:main"
 
 [tool.ruff]
 line-length = 120
-target-version = "py38"
+target-version = "py39"
 exclude = ["*_pb2.py"]
 
 [tool.ruff.lint]
