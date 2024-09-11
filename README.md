@@ -1,5 +1,9 @@
 # biliass
 
+> [!NOTE]
+>
+> biliass has been moved to [yutto-dev/yutto](https://github.com/yutto-dev/yutto/tree/main/packages/biliass).
+
 <p align="center">
    <a href="https://python.org/" target="_blank"><img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/biliass?logo=python&style=flat-square"></a>
    <a href="https://pypi.org/project/biliass/" target="_blank"><img src="https://img.shields.io/pypi/v/biliass?style=flat-square" alt="pypi"></a>
